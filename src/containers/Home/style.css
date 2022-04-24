@@ -1,0 +1,16 @@
+.home__import-button {
+  margin-bottom: 20px;
+}
+
+.table__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.importNewData__button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}

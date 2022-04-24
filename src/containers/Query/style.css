@@ -30,3 +30,34 @@
 }
 .checkboxes__item {
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  list-style-type: none;
+  width: 100%;
+}
+.pagination li {
+  margin: 0 0.4rem;
+}
+.pagination li a {
+  display: block;
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1.6rem;
+  text-align: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.pagination li:hover a {
+  color: var(--primary);
+}
+.pagination_active {
+  box-sizing: border-box;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.pagination .previous > a,
+.pagination .next > a {
+  font-size: 1.2rem;
+}

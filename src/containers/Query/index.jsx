@@ -1,41 +1,47 @@
 import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Container,
-  Form,
-  FormControl,
-  InputGroup,
-  Modal,
-  Spinner,
-  Table,
-  Dropdown,
-} from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
-import "./style.css";
+import { Container, Dropdown, Form, FormControl, Table } from "react-bootstrap";
+import ReactPaginate from "react-paginate";
+import { useSelector } from "react-redux";
 import axios from "../../helpers/axios";
+import "./style.css";
 
 function Query(props) {
   const [search, setSearch] = useState({
     text: "",
     index: "",
     perPage: 10,
+    totalPage: 1,
+    page: 1,
   });
   const [fields, setFields] = useState([]);
   const [checkedFields, setCheckedFields] = useState([]);
+  const [checkedFilters, setCheckedFilters] = useState([]);
   const [data, setData] = useState({
     header: [],
     body: [],
-    filterdBody: [],
   });
 
   const { indexes } = useSelector((state) => state.init);
 
-  const fetchData = async () => {
-    if (search.index) {
-      const response = await axios.get(
-        `/search/multiMatch?index=${search.index}&input=${search.text}&perPage=${search.perPage}`
+  const fetchData = async (page = 1) => {
+    if (search.index && checkedFields.length > 0) {
+      const queryData = {
+        index: search.index,
+        input: search.text,
+        perPage: search.perPage,
+        page,
+        includes: checkedFields,
+        fields: checkedFilters,
+      };
+      const response = await axios.post(
+        `/search/partialSearch/${page}/${search.perPage}`,
+        queryData
       );
-      const result = response.data.result.hits.hits.map((h) => h._source);
+      const result = response.data.formatResult.result.items.map(
+        (h) => h._source
+      );
+
+      const { totalPage } = response.data.formatResult.result;
 
       const header = Object.keys(result[0] ?? []);
       const body = result;
@@ -43,8 +49,8 @@ function Query(props) {
         ...data,
         header,
         body,
-        filterdBody: body,
       });
+      setSearch((prev) => ({ ...prev, totalPage }));
     }
   };
 
@@ -65,10 +71,17 @@ function Query(props) {
 
   useEffect(() => {
     const fetch = async () => {
-      await fetchData();
+      await fetchData(search.page);
     };
     fetch();
-  }, [search]);
+  }, [
+    search.text,
+    search.index,
+    search.perPage,
+    search.page,
+    checkedFields,
+    checkedFilters,
+  ]);
 
   const handleSearchTextChange = async (e) => {
     setSearch((prev) => ({ ...prev, text: e.target.value }));
@@ -89,11 +102,13 @@ function Query(props) {
     }));
   };
 
-  function filterObject(obj, callback) {
-    return Object.fromEntries(
-      Object.entries(obj).filter(([key, val]) => callback(val, key))
-    );
-  }
+  const handlePageClick = (activePage) => {
+    setSearch((prev) => ({
+      ...prev,
+      page: +activePage.selected + 1,
+    }));
+  };
+
   return (
     // const indexNameList = ;
 
@@ -123,6 +138,7 @@ function Query(props) {
           </Dropdown.Menu>
         </Dropdown>
       </div>
+      <div>Columns</div>
       <Form
         className="checkboxes"
         onChange={(e) => {
@@ -151,13 +167,55 @@ function Query(props) {
             />
           ))}
       </Form>
+      <div>Filter</div>
+      <Form
+        className="checkboxes"
+        onChange={(e) => {
+          const { value } = e.target;
+          setCheckedFilters((prev) => {
+            if (prev.includes(value)) {
+              const dataValue = prev.filter((i) => i !== value);
+              return dataValue;
+            } else {
+              const dataValue = [...prev, value];
+              return dataValue;
+            }
+          });
+        }}
+      >
+        {fields.length > 0 &&
+          fields.map((f) => (
+            <Form.Check
+              className="checkboxes__item"
+              type="checkbox"
+              id={`${f}_filter`}
+              label={f}
+              value={f}
+              checked={checkedFilters.includes(f)}
+            />
+          ))}
+      </Form>
       <FormControl
         value={search.text}
         onChange={handleSearchTextChange}
         placeholder="Search by text"
         className="query__input"
       />
-
+      {data.body?.length > 0 && (
+        <ReactPaginate
+          previousLabel={"<"}
+          nextLabel={">"}
+          breakLabel={"..."}
+          breakClassName={"break-me"}
+          pageCount={search.totalPage}
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={5}
+          forcePage={Number(search.page - 1) || 0}
+          onPageChange={handlePageClick}
+          containerClassName={"pagination"}
+          activeClassName={"pagination_active"}
+        />
+      )}
       <Table striped bordered hover responsive>
         <thead>
           <tr>
@@ -166,8 +224,8 @@ function Query(props) {
           </tr>
         </thead>
         <tbody>
-          {data.filterdBody?.length > 0 &&
-            data.filterdBody.map((item) => (
+          {data.body?.length > 0 &&
+            data.body.map((item) => (
               <tr key={item.uuid}>
                 {Object.keys(item).map((column) => (
                   <td>{item[column]}</td>

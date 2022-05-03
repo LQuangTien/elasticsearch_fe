@@ -3,6 +3,8 @@ import { Container, Dropdown, Form, FormControl, Table } from "react-bootstrap";
 import ReactPaginate from "react-paginate";
 import { useSelector } from "react-redux";
 import axios from "../../helpers/axios";
+import AU from "./arrow-up.svg";
+import AD from "./arrow-down.svg";
 import "./style.css";
 
 function Query(props) {
@@ -32,6 +34,7 @@ function Query(props) {
         page,
         includes: checkedFields,
         fields: checkedFilters,
+        sort: search.sort,
       };
       const response = await axios.post(
         `/search/partialSearch/${page}/${search.perPage}`,
@@ -75,13 +78,24 @@ function Query(props) {
     };
     fetch();
   }, [
-    search.text,
     search.index,
     search.perPage,
     search.page,
+    search.sort,
     checkedFields,
     checkedFilters,
   ]);
+
+  useEffect(() => {
+    const fetch = async () => {
+      await fetchData(1);
+    };
+    fetch();
+    setSearch((prev) => ({
+      ...prev,
+      page: 1,
+    }));
+  }, [search.text]);
 
   const handleSearchTextChange = async (e) => {
     setSearch((prev) => ({ ...prev, text: e.target.value }));
@@ -107,6 +121,53 @@ function Query(props) {
       ...prev,
       page: +activePage.selected + 1,
     }));
+  };
+
+  const handleSortColumn = (column) => {
+    setSearch((prev) => {
+      if (prev.sort == void 0) {
+        return { ...prev, sort: [{ [column]: { order: "desc" } }] };
+      }
+      if (Object.keys(prev.sort[0])[0] === column) {
+        return {
+          ...prev,
+          sort: [
+            {
+              [column]: {
+                order: prev.sort[0][column].order === "asc" ? "desc" : "asc",
+              },
+            },
+          ],
+        };
+      } else {
+        return { ...prev, sort: [{ [column]: { order: "desc" } }] };
+      }
+    });
+  };
+
+  const renderheader = (header, index) => {
+    const existSortHeader =
+      search.sort && Object.keys(search.sort[0])[0] === header;
+    const descExistSortHeader =
+      existSortHeader && search.sort[0][header].order === "desc";
+    const ascExistSortHeader =
+      existSortHeader && search.sort[0][header].order === "asc";
+    return (
+      <th
+        className="tableHeader"
+        onClick={() => handleSortColumn(header)}
+        key={index}
+      >
+        <span style={{ marginRight: "10px" }}>{header}</span>
+        {descExistSortHeader ? (
+          <img style={{ height: "20px", width: "20px" }} src={AU} alt="" />
+        ) : ascExistSortHeader ? (
+          <img style={{ height: "20px", width: "20px" }} src={AD} alt="" />
+        ) : (
+          <></>
+        )}
+      </th>
+    );
   };
 
   return (
@@ -220,7 +281,7 @@ function Query(props) {
         <thead>
           <tr>
             {data.header &&
-              data.header.map((h, index) => <th key={index}>{h}</th>)}
+              data.header.map((h, index) => renderheader(h, index))}
           </tr>
         </thead>
         <tbody>

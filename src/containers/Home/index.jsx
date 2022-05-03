@@ -136,7 +136,7 @@ function Home(props) {
     const newData = {
       ...indexData,
       mapping: fileFields.reduce((acc, cur) => {
-        acc[cur] = { type: "text" };
+        acc[cur] = { type: "keyword" };
         return acc;
       }, {}),
       file,
@@ -254,12 +254,13 @@ function Home(props) {
                     className="selectTypeForFile"
                     style={{ textTransform: "capitalize" }}
                     onChange={(e) => handleSelectTypeForField(e, field)}
+                    value={indexData.mapping[field].type}
                   >
                     {[
+                      "keyword",
                       "text",
                       "integer",
                       "float",
-                      "keyword",
                       "datetime",
                       "byte",
                       "boolean",

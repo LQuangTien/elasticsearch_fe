@@ -14,3 +14,11 @@
   align-items: center;
   gap: 5px;
 }
+
+.selectTypeForFile {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}

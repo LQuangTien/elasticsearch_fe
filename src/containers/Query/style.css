@@ -22,6 +22,15 @@
   margin-bottom: 20px;
 }
 
+.dropdown__button:hover {
+  background: transparent;
+  color: black;
+}
+
+.dropdown-menu.show {
+  width: 100%;
+}
+
 .checkboxes {
   display: flex;
   gap: 20px;

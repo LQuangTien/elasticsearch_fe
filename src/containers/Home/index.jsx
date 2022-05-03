@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   Button,
   Container,
+  Dropdown,
   Form,
   InputGroup,
   Modal,
@@ -12,18 +13,21 @@ import { useDispatch, useSelector } from "react-redux";
 import { getInitialData, importDataWithNewIndex } from "../../actions";
 import "./style.css";
 import axios from "../../helpers/axios";
+const defaultValue = {
+  name: "",
+  file: null,
+  error: "",
+  isSubmitting: false,
+  mapping: null,
+};
 
 function Home(props) {
+  const [fields, setFields] = useState([]);
   const [showImportNewDataModal, setShowImportNewDataModal] = useState(false);
   const [showDeleteIndexModal, setShowDeleteIndexModal] = useState(false);
   const [showImportDataForIndexModal, setShowImportDataForIndexModal] =
     useState(false);
-  const [indexData, setIndexData] = useState({
-    name: "",
-    file: null,
-    error: "",
-    isSubmitting: false,
-  });
+  const [indexData, setIndexData] = useState(defaultValue);
 
   const dispatch = useDispatch();
   const { indexes } = useSelector((state) => state.init);
@@ -32,7 +36,6 @@ function Home(props) {
     event.preventDefault();
 
     const indexNameList = indexes.map((i) => i.index);
-    console.log(indexNameList.includes(indexData.name));
     if (indexNameList.includes(indexData.name)) {
       setIndexData({
         ...indexData,
@@ -50,6 +53,7 @@ function Home(props) {
     const formData = new FormData();
     formData.append("index", indexData.name);
     formData.append("dataFile", indexData.file);
+    formData.append("mapping", JSON.stringify(indexData.mapping));
 
     axios
       .post("/bulk/data", formData)
@@ -59,7 +63,9 @@ function Home(props) {
       .finally(() => {
         setIndexData({
           ...indexData,
-          namne: "",
+          name: "",
+          file: null,
+          mapping: [],
           isSubmitting: false,
         });
         setShowImportNewDataModal(false);
@@ -84,7 +90,7 @@ function Home(props) {
     dispatch(getInitialData());
     setIndexData({
       ...indexData,
-      namne: "",
+      name: "",
       isDeleting: false,
     });
     setShowDeleteIndexModal(false);
@@ -100,17 +106,14 @@ function Home(props) {
 
   const handleImportDataForIndex = (event) => {
     event.preventDefault();
-
     setIndexData({
       ...indexData,
       error: "",
       isSubmitting: true,
     });
-
     const formData = new FormData();
     formData.append("index", indexData.name);
     formData.append("dataFile", indexData.file);
-
     axios
       .post("/bulk/data", formData)
       .then(() => {
@@ -126,10 +129,43 @@ function Home(props) {
       });
   };
 
+  function onReaderLoad(event, file) {
+    const obj = JSON.parse(event.target.result);
+    const fileFields = Object.keys(obj[0]);
+    setFields(() => fileFields);
+    const newData = {
+      ...indexData,
+      mapping: fileFields.reduce((acc, cur) => {
+        acc[cur] = { type: "text" };
+        return acc;
+      }, {}),
+      file,
+    };
+    console.log(newData);
+    setIndexData(() => newData);
+  }
+
+  const handleSelectFile = (e) => {
+    var reader = new FileReader();
+    reader.onload = (event) => onReaderLoad(event, e.target.files[0]);
+    reader.readAsText(e.target.files[0]);
+  };
+  const handleSelectTypeForField = (e, field) => {
+    const cloneIndexData = indexData;
+    cloneIndexData.mapping[field] = { type: e.target.value };
+    setIndexData(() => cloneIndexData);
+    console.log(indexData.mapping);
+  };
+
   return (
     <Container>
       <div className="home__import-button">
-        <Button onClick={() => setShowImportNewDataModal(true)}>
+        <Button
+          onClick={() => {
+            setShowImportNewDataModal(true);
+            setIndexData(defaultValue);
+          }}
+        >
           Import index
         </Button>
       </div>
@@ -207,16 +243,39 @@ function Home(props) {
 
             <Form.Group className="mb-3" controlId="formBasicPassword">
               <Form.Label>Choose index file (.json)</Form.Label>
-              <Form.Control
-                onChange={(e) =>
-                  setIndexData({
-                    ...indexData,
-                    file: e.target.files[0],
-                  })
-                }
-                type="file"
-              />
+              <Form.Control onChange={handleSelectFile} type="file" />
             </Form.Group>
+            {indexData.file &&
+              fields.length > 0 &&
+              fields.map((field) => (
+                <Form.Group key={field} className="my-3">
+                  <Form.Label>Select type for field: "{field}"</Form.Label>
+                  <select
+                    className="selectTypeForFile"
+                    style={{ textTransform: "capitalize" }}
+                    onChange={(e) => handleSelectTypeForField(e, field)}
+                  >
+                    {[
+                      "text",
+                      "integer",
+                      "float",
+                      "keyword",
+                      "datetime",
+                      "byte",
+                      "boolean",
+                      "ip",
+                    ].map((i) => (
+                      <option
+                        key={i}
+                        style={{ textTransform: "capitalize" }}
+                        value={i}
+                      >
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                </Form.Group>
+              ))}
             <Button
               className="importNewData__button"
               variant="primary"

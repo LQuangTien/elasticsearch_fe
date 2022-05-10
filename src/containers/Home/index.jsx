@@ -136,7 +136,7 @@ function Home(props) {
     const newData = {
       ...indexData,
       mapping: fileFields.reduce((acc, cur) => {
-        acc[cur] = { type: "keyword" };
+        acc[cur] = { type: "text" };
         return acc;
       }, {}),
       file,
@@ -152,8 +152,9 @@ function Home(props) {
   };
   const handleSelectTypeForField = (e, field) => {
     const cloneIndexData = indexData;
-    cloneIndexData.mapping[field] = { type: e.target.value };
-    setIndexData(() => cloneIndexData);
+    cloneIndexData.mapping[field].type = e.target.value;
+    indexData.mapping[field].type = e.target.value;
+    setIndexData((prev) => ({ ...prev, ...cloneIndexData }));
     console.log(indexData.mapping);
   };
 
@@ -255,6 +256,7 @@ function Home(props) {
                     style={{ textTransform: "capitalize" }}
                     onChange={(e) => handleSelectTypeForField(e, field)}
                     value={indexData.mapping[field].type}
+                    name={indexData.mapping[field]}
                   >
                     {[
                       "keyword",

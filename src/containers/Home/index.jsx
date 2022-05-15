@@ -56,7 +56,7 @@ function Home(props) {
     formData.append("mapping", JSON.stringify(indexData.mapping));
 
     axios
-      .post("/bulk/data", formData)
+      .post("/bulk/new-data", formData)
       .then(() => {
         dispatch(getInitialData());
       })
